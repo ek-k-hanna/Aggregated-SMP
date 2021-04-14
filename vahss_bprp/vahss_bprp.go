@@ -4,6 +4,8 @@ import (
   "math/big"
   "github.com/ing-bank/zkrp/crypto/p256"
   ."hannaekthesis/vahss"
+  "hannaekthesis/bulletproof"
+  "fmt"
 )
 
 func Generate_shares(i int, x_i *big.Int, degree int64 , nr_servers int64, mod *Modular) ([]*big.Int){
@@ -23,13 +25,11 @@ func gen_secret_share_additive_with_hash_functions(i int, x_i *big.Int, degree i
   return shares//, tau_i
 }
 
-/*
-func gen_tau(xi, Ri *big.Int, g *p256.P256, params *bulletproofs.Bprp) (*p256.P256){
-  var tau_i *p256.P256
-  tau_i,_ = CommitG1(xi,Ri, params.BP1.H) //new(p256.P256).ScalarBaseMult(new(big.Int).Add(x_i,R_i))
-  return tau_i
+func Generate_Bulletproof(secret,randomValue *big.Int, params *bulletproofs.Bprp) (bulletproofs.ProofBPRP){
+  proof,_:= bulletproofs.ProveGeneric(secret,randomValue, params)
+  return proof
 }
-*/
+
 
 func Partial_eval(s_j *Server, j int, shares []*big.Int, nr_clients int64, mod *Modular) (*big.Int){
   var partialeval *IntegerModP =  InitIntegerModP(big.NewInt(0),mod)
@@ -46,28 +46,13 @@ func Final_eval(partialEvals []*big.Int, nr_servers int64, mod *Modular) (*big.I
     }
   return finaleval
 }
-/*
-func Partial_proof(s_j *Server, shares []*big.Int, g *big.Int, nr_clients int64, mod *Modular) (*big.Int){
-  var y_j *big.Int = Partial_eval(s_j, s_j.j, shares, nr_clients, mod)
-  sigma_j := new(big.Int).Exp(g,y_j,nil)
-  return sigma_j
-}
-*/
 func Partial_proof(s_j *Server, shares []*big.Int, g *p256.P256, nr_clients int64, mod *Modular) *p256.P256{
   var y_j *big.Int = Partial_eval(s_j,s_j.Id, shares, nr_clients, mod)
   var sigma_j *p256.P256 = new(p256.P256).ScalarBaseMult(y_j)
   return sigma_j
 
 }
-/*
-func Final_proof(y *big.Int,partialProofs []*big.Int, nr_servers int64, g *big.Int, mod *Modular) (*big.Int){
-  finalproof := big.NewInt(1)
-  for j := int64(0); j < nr_servers; j++ {
-      finalproof = new(big.Int).Mul(finalproof,partialProofs[j])
-    }
-  return finalproof
-}
-*/
+
 func Final_proof(partialProofs []*p256.P256, nr_servers int64, g *p256.P256)(*p256.P256){
   var sigma *p256.P256 = partialProofs[0]
   for i:= int64(1) ; i< nr_servers ; i++{
@@ -75,26 +60,8 @@ func Final_proof(partialProofs []*p256.P256, nr_servers int64, g *p256.P256)(*p2
   }
   return sigma
 }
-/*
-func Verify(tau_is []*big.Int, nr_clients int64, sigma *big.Int, y *big.Int, g *big.Int, mod *Modular) (bool){
-  prod := big.NewInt(1)
-  for i:= int64(0); i < nr_clients; i++ {
-    //prod = ModMul(prod,InitIntegerModP(tau_is[i],mod))
-    prod = new(big.Int).Mul(prod,tau_is[i])
-  }
-  hash_y := new(big.Int).Exp(g,y,nil)
 
-  prod_Zp :=  InitIntegerModP(prod, mod)
-  sigma_Zp := InitIntegerModP(sigma, mod)
-  hash_y_Zp := InitIntegerModP(hash_y, mod)
-  hash_y_mod := InitIntegerModP(new(big.Int).Exp(g,InitIntegerModP(y,mod).num,nil),mod)
-
-  return ( ModEq(sigma_Zp,hash_y_Zp) && ModEq(prod_Zp,hash_y_mod))
-
-}
-*/
-
-func Verify(tau_is []*p256.P256, nr_clients int64, sigma *p256.P256, y *big.Int, g *p256.P256, mod *Modular) (bool){
+func Verify_Servers(tau_is []*p256.P256, nr_clients int64, sigma *p256.P256, y *big.Int) (bool){
   var tau *p256.P256 = tau_is[0]
   for i:= int64(1) ; i< nr_clients ; i++{
     tau.Multiply(tau, tau_is[i])
@@ -102,19 +69,27 @@ func Verify(tau_is []*p256.P256, nr_clients int64, sigma *p256.P256, y *big.Int,
   sigma.Neg(sigma)
   tau.Multiply(tau,sigma)
   ok_1 := tau.IsZero()
-  //prod := big.NewInt(1)
-  //for i:= int64(0); i < nr_clients; i++ {
-    //prod = ModMul(prod,InitIntegerModP(tau_is[i],mod))
-  //  prod = new(big.Int).Mul(prod,tau_is[i])
-  //}
-  //hash_y := new(big.Int).Exp(g,y,nil)
 
-  //prod_Zp :=  InitIntegerModP(prod, mod)
-  //sigma_Zp := InitIntegerModP(sigma, mod)
-  //hash_y_Zp := InitIntegerModP(hash_y, mod)
-  //hash_y_mod := InitIntegerModP(new(big.Int).Exp(g,InitIntegerModP(y,mod).num,nil),mod)
   hash := new(p256.P256).ScalarBaseMult(y)
   hash.Multiply(hash,sigma)
   ok_2 :=  hash.IsZero()
   return ok_1 && ok_2
+}
+
+func Verify_RP(proofs []bulletproofs.ProofBPRP)(bool){
+	var ok bool = true
+	for _,proof := range proofs{
+		ok, _ = proof.Verify()
+	}
+  return ok
+}
+
+func Verify(tau_is []*p256.P256, nr_clients int64, sigma *p256.P256, y *big.Int, RPs []bulletproofs.ProofBPRP) (bool){
+  ok_servers := Verify_Servers(tau_is, nr_clients, sigma, y)
+  fmt.Println("Servers honest: ", ok_servers)
+  ok_clients :=  Verify_RP(RPs)
+  fmt.Println("Cients honest: ", ok_clients)
+  return ok_servers && ok_clients
+
+
 }

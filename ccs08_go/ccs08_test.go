@@ -152,29 +152,18 @@ Tests the entire ZK Range Proof (CCS08) protocol.
 func TestZKRP(t *testing.T) {
     var (
         result bool
-        zkrp   ccs08
+        zkrp   Ccs08
     )
 
-    startTimeProver := time.Now()
     zkrp.Setup(18, 200)
     zkrp.x = new(big.Int).SetInt64(419835123)
     zkrp.r, _ = rand.Int(rand.Reader, bn256.Order)
-    e := zkrp.Prove()
-
-
-    endTimeProver := time.Now()
-    fmt.Println("Prover time:")
-    fmt.Println(endTimeProver.Sub(startTimeProver))
+    e := zkrp.Prove(zkrp.x, zkrp.r)
 
     if e != nil {
         t.Errorf("Error while proving ZKRP: %s", e.Error())
     }
-    startTimeVerifier := time.Now()
     result, _ = zkrp.Verify()
-    endTimeVerifier := time.Now()
-    fmt.Println("Verifier time:")
-    fmt.Println(endTimeVerifier.Sub(startTimeVerifier))
-    
     if result != true {
         t.Errorf("Assert failure: expected true, actual: %t", result)
     }

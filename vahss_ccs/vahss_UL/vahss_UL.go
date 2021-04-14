@@ -1,10 +1,12 @@
-package vahss_ccs
+package vahss_UL
 
 import (
   "math/big"
-    "github.com/ing-bank/zkrp/crypto/bn256"
-      ."hannaekthesis/vahss"
-    "bytes"
+  "github.com/ing-bank/zkrp/crypto/bn256"
+  ."hannaekthesis/vahss"
+  "bytes"
+  "fmt"
+  ."hannaekthesis/ccs08"
 )
 
 func Generate_shares(i int, x_i *big.Int, degree int64 , nr_servers int64, mod *Modular) ([]*big.Int){
@@ -47,7 +49,15 @@ func Final_proof(partialProofs []*bn256.G2, nr_servers int64)(*bn256.G2){
   return sigma
 }
 
-func Verify(tau_is []*bn256.G2, nr_clients int64, sigma *bn256.G2, y *big.Int, mod *Modular) (bool){
+func Verify_RP(proofs []*Proof, zkrp Ccs08) (bool){
+  var ok bool = true
+  for _,proof := range proofs{
+    ok, _ = Verify_range(proof,&zkrp)
+  }
+  return ok
+}
+
+func Verify_Servers(tau_is []*bn256.G2, nr_clients int64, sigma *bn256.G2, y *big.Int) (bool){
 
   var tau *bn256.G2 = tau_is[0]
   for i:= int64(1) ; i< nr_clients ; i++{
@@ -63,4 +73,14 @@ func Verify(tau_is []*bn256.G2, nr_clients int64, sigma *bn256.G2, y *big.Int, m
   ok_2 := bytes.Equal(sigmaBytes,hashBytes)
 
   return ok_1 && ok_2
+}
+
+func Verify(tau_is []*bn256.G2, nr_clients int64, sigma *bn256.G2, y *big.Int, RPs []*Proof, zkrp Ccs08 ) (bool){
+  ok_servers := Verify_Servers(tau_is, nr_clients, sigma, y)
+  fmt.Println("Servers honest: ", ok_servers)
+  ok_clients :=  Verify_RP(RPs, zkrp)
+  fmt.Println("Cients honest: ", ok_clients)
+  return ok_servers && ok_clients
+
+
 }

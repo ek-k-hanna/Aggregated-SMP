@@ -339,8 +339,8 @@ func VerifyUL(proof_out *proofUL, p *paramsUL) (bool, error) {
 /*
 proof contains the necessary elements for the ZK proof.
 */
-type proof struct {
-    p1, p2 proofUL
+type Proof struct {
+    P1, P2 proofUL
 }
 
 /*
@@ -349,19 +349,19 @@ This must be computed in a trusted setup.
 */
 type params struct {
     p    *paramsUL
-    a, b int64
+    A, B int64
 }
 
-type ccs08 struct {
-    p         *params
-    x, r      *big.Int
-    proof_out proof
+type Ccs08 struct {
+    P         *params
+    //x, r      *big.Int
+    //Proof_out Proof
 }
 
 /*
 SetupInnerProduct receives integers a and b, and configures the parameters for the rangeproof scheme.
 */
-func (zkrp *ccs08) Setup(a, b int64) error {
+func (zkrp *Ccs08) Setup(a, b int64) error {
     // Compute optimal values for u and l
     var (
         u, l int64
@@ -369,7 +369,7 @@ func (zkrp *ccs08) Setup(a, b int64) error {
         p    *params
     )
     if a > b {
-        zkrp.p = nil
+        zkrp.P = nil
         return errors.New("a must be less than or equal to b")
     }
     p = new(params)
@@ -384,16 +384,16 @@ func (zkrp *ccs08) Setup(a, b int64) error {
             }
             params_out, e := SetupUL(u, l)
             p.p = &params_out
-            p.a = a
-            p.b = b
-            zkrp.p = p
+            p.A = a
+            p.B = b
+            zkrp.P = p
             return e
         } else {
-            zkrp.p = nil
+            zkrp.P = nil
             return errors.New("u is zero")
         }
     } else {
-        zkrp.p = nil
+        zkrp.P = nil
         return errors.New("log(b) is zero")
     }
 }
@@ -401,28 +401,28 @@ func (zkrp *ccs08) Setup(a, b int64) error {
 /*
 Prove method is responsible for generating the zero knowledge proof.
 */
-func (zkrp *ccs08) Prove() error {
-    ul := new(big.Int).Exp(new(big.Int).SetInt64(zkrp.p.p.u), new(big.Int).SetInt64(zkrp.p.p.l), nil)
-
+func Prove(secret, randomValue *big.Int, zkrp *Ccs08) (*Proof, error) {
+    ul := new(big.Int).Exp(new(big.Int).SetInt64(zkrp.P.p.u), new(big.Int).SetInt64(zkrp.P.p.l), nil)
     // x - b + ul
-    xb := new(big.Int).Sub(zkrp.x, new(big.Int).SetInt64(zkrp.p.b))
+    xb := new(big.Int).Sub(secret, new(big.Int).SetInt64(zkrp.P.B))
     xb.Add(xb, ul)
-    first, _ := ProveUL(xb, zkrp.r, *zkrp.p.p)
+    first, _ := ProveUL(xb, randomValue, *zkrp.P.p)
 
     // x - a
-    xa := new(big.Int).Sub(zkrp.x, new(big.Int).SetInt64(zkrp.p.a))
-    second, _ := ProveUL(xa, zkrp.r, *zkrp.p.p)
+    xa := new(big.Int).Sub(secret, new(big.Int).SetInt64(zkrp.P.A))
+    second, _ := ProveUL(xa, randomValue, *zkrp.P.p)
 
-    zkrp.proof_out.p1 = first
-    zkrp.proof_out.p2 = second
-    return nil
+    proof_out := new(Proof)
+    proof_out.P1 = first
+    proof_out.P2 = second
+    return proof_out, nil
 }
 
 /*
 Verify is responsible for validating the proof.
 */
-func (zkrp *ccs08) Verify() (bool, error) {
-    first, _ := VerifyUL(&zkrp.proof_out.p1, zkrp.p.p)
-    second, _ := VerifyUL(&zkrp.proof_out.p2, zkrp.p.p)
+func Verify_range(proof *Proof, zkrp *Ccs08) (bool, error) {
+    first, _ := VerifyUL(&proof.P1, zkrp.P.p)
+    second, _ := VerifyUL(&proof.P2, zkrp.P.p)
     return first && second, nil
 }

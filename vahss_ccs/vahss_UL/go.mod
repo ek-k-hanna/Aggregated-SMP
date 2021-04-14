@@ -1,9 +1,10 @@
-module hannaekthesis/vahss_ccs
+module hannaekthesis/vahss_UL
 
 go 1.16
 
-replace hannaekthesis/ccs08 => ../cccs08_go
-replace hannaekthesis/vahss => ../vahss
+replace hannaekthesis/ccs08 => ../../ccs08_go
+
+replace hannaekthesis/vahss => ../../vahss
 
 require (
 	github.com/ing-bank/zkrp v0.0.0-20200519071134-97a3cddb5627 // indirect
