@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2019 ING BANK N.V.
  *
+ * Contrubuters: Hanna Ek 2021
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -14,13 +16,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-/*
-This file contains the implementation of the ZKRP scheme proposed in the paper:
-Efficient Protocols for Set Membership and Range Proofs
-Jan Camenisch, Rafik Chaabouni, abhi shelat
-Asiacrypt 2008
-*/
 
 package ccs08
 
@@ -37,7 +32,6 @@ import (
     . "github.com/ing-bank/zkrp/util"
     "github.com/ing-bank/zkrp/util/bn"
     "github.com/ing-bank/zkrp/util/intconversion"
-
 )
 
 /*
@@ -228,7 +222,6 @@ func ProveUL(x, r *big.Int, p paramsUL) (proofUL, error) {
             proof_out.a[i].ScalarMult(proof_out.a[i], proof_out.s[i])
             proof_out.a[i].Invert(proof_out.a[i])
             proof_out.a[i].Add(proof_out.a[i], new(bn256.GT).ScalarMult(E, proof_out.t[i]))
-
             ui := new(big.Int).Exp(new(big.Int).SetInt64(p.u), new(big.Int).SetInt64(i), nil)
             muisi := new(big.Int).Mul(proof_out.s[i], ui)
             muisi = bn.Mod(muisi, bn256.Order)
@@ -262,6 +255,7 @@ func ProveUL(x, r *big.Int, p paramsUL) (proofUL, error) {
 VerifySet is used to validate the ZK Set Membership proof. It returns true iff the proof is valid.
 */
 func VerifySet(proof_out *ProofSet, p *ParamsSet) (bool, error) {
+
     var (
         D      *bn256.G2
         r1, r2 bool
@@ -277,7 +271,6 @@ func VerifySet(proof_out *ProofSet, p *ParamsSet) (bool, error) {
     pDBytes := proof_out.D.Marshal()
     r1 = bytes.Equal(DBytes, pDBytes)
 
-    r2 = true
     // a == [e(V,y)^c].[e(V,g)^-zsig].[e(g,g)^zv]
     p1 = bn256.Pair(p.kp.Pubk, proof_out.V)
     p1.ScalarMult(p1, proof_out.c)
@@ -289,7 +282,7 @@ func VerifySet(proof_out *ProofSet, p *ParamsSet) (bool, error) {
 
     pBytes := p1.Marshal()
     aBytes := proof_out.a.Marshal()
-    r2 = r2 && bytes.Equal(pBytes, aBytes)
+    r2 =  bytes.Equal(pBytes, aBytes)
     return r1 && r2, nil
 }
 
@@ -425,4 +418,80 @@ func Verify_range(proof *Proof, zkrp *Ccs08) (bool, error) {
     first, _ := VerifyUL(&proof.P1, zkrp.P.p)
     second, _ := VerifyUL(&proof.P2, zkrp.P.p)
     return first && second, nil
+}
+
+
+/*
+Added functions for aggregated set membership proofs
+*/
+func GetChallange (proof *ProofSet) (*big.Int){
+  return proof.c
+}
+func Aggregation(proofs []ProofSet, challanges []*big.Int, prodChallanges *big.Int, set *ParamsSet) (ProofSet) {
+  var aggregatedProof ProofSet
+  aggregatedProof.D = new(bn256.G2)
+  aggregatedProof.D.SetInfinity()
+  aggregatedProof.zsig = big.NewInt(0)
+  aggregatedProof.zr = big.NewInt(0)
+  nbr_proofs := len(proofs)
+  for i:=0; i < nbr_proofs; i++ {
+    proof := &proofs[i]
+    var c = new(big.Int).Div(prodChallanges,challanges[i])
+    // D
+    D := new(bn256.G2).ScalarMult(proof.D,c)
+    aggregatedProof.D.Add(aggregatedProof.D,D)
+    // z_x
+    tmp_x := bn.Multiply(proof.zsig, c)
+    aggregatedProof.zsig = bn.Add(aggregatedProof.zsig, tmp_x)
+    aggregatedProof.zsig = bn.Mod(aggregatedProof.zsig, bn256.Order)
+    //z_R
+    tmp_R := bn.Multiply(proof.zr, c)
+    aggregatedProof.zr = bn.Add(aggregatedProof.zr, tmp_R)
+    aggregatedProof.zr = bn.Mod(aggregatedProof.zr, bn256.Order)
+  }
+  return aggregatedProof
+}
+
+func VerifyAggregatedSet(proofs []ProofSet, p *ParamsSet,aggProof *ProofSet, c *big.Int, C *bn256.G2 ) (bool){
+  var ok2 bool = true
+  ok1 := VerifyAggregation(aggProof,p,c,C )
+  for _,proof := range proofs{
+    ok2 = VerifyBilinearPart(&proof,p)
+  }
+  return ok1 && ok2
+}
+
+func VerifyAggregation(proof *ProofSet, p *ParamsSet, c *big.Int, C *bn256.G2) (bool){
+  var (
+      D      *bn256.G2
+      ok bool
+  )
+  // D == C^c.h^ zr.g^zsig ?
+  D = new(bn256.G2).ScalarMult(C, c)
+  D.Add(D, new(bn256.G2).ScalarMult(p.H, proof.zr))
+  aux := new(bn256.G2).ScalarBaseMult(proof.zsig)
+  D.Add(D, aux)
+
+  DBytes := D.Marshal()
+  pDBytes := proof.D.Marshal()
+  ok = bytes.Equal(DBytes, pDBytes)
+  return ok
+}
+
+func VerifyBilinearPart(proof *ProofSet, p *ParamsSet) (bool){
+    var (ok bool
+        p1, p2 *bn256.GT
+    )
+    // a == [e(V,y)^c].[e(V,g)^-zsig].[e(g,g)^zv]
+    p1 = bn256.Pair(p.kp.Pubk, proof.V)
+    p1.ScalarMult(p1, proof.c)
+    p2 = bn256.Pair(G1, proof.V)
+    p2.ScalarMult(p2, proof.zsig)
+    p2.Invert(p2)
+    p1.Add(p1, p2)
+    p1.Add(p1, new(bn256.GT).ScalarMult(E, proof.zv))
+    pBytes := p1.Marshal()
+    aBytes := proof.a.Marshal()
+    ok  =  bytes.Equal(pBytes, aBytes)
+    return ok
 }

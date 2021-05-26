@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2021 Hanna Ek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package vahss
 
 import (
@@ -31,7 +47,6 @@ func Get_large_enough_prime(batch []int64) (*big.Int){
   large_primes := []*big.Int{SMALLEST_257BIT_PRIME, SMALLEST_321BIT_PRIME, SMALLEST_385BIT_PRIME}
   STANDARD_PRIMES := append(calculate_mersenne_primes(),large_primes...)
   primes := STANDARD_PRIMES
-  //primes := sort.Sort(STANDARD_PRIMES)
 
   for _,p := range primes{
     var numbers_greater_than_prime []*big.Int
@@ -46,5 +61,5 @@ func Get_large_enough_prime(batch []int64) (*big.Int){
       return p
     }
   }
-  return nil // TODO fix error
+  return nil
 }

@@ -2,7 +2,8 @@ module hannaekthesis/vahss_SM
 
 go 1.16
 
-replace hannaekthesis/ccs08 => ../../cccs08_go
+replace hannaekthesis/ccs08 => ../../ccs08_go
+
 replace hannaekthesis/vahss => ../../vahss
 
 require (

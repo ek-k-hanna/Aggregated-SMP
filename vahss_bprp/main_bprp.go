@@ -1,25 +1,40 @@
+/*
+ * Copyright (C) 2021 Hanna Ek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package vahss_bprp
 
 import (
 		"fmt"
 		"hannaekthesis/bulletproof"
-		"github.com/ing-bank/zkrp/crypto/p256"
+		"hannaekthesis/p256"
 		"math/big"
 		"crypto/rand"
 		."hannaekthesis/vahss"
 )
 func Main_bprp() {
 
-	  const nr_clients = int64(10)
+	  const nr_clients = int64(100)
 	  const nr_servers = int64(5)
 
 	  var prime, R_is, phiN *big.Int
-		var g *p256.P256
 	  var Zp *Modular
 	  var t, min, max, length_interval int64
 	  var clients []*Client
 	  var servers []*Server
-		prime,_ = new(big.Int).SetString("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 0)
+		prime = p256.CURVE.N
 		phiN = new(big.Int).Sub(prime,big.NewInt(1))
 	  Zp = InitModular(prime)
 	  t = 2 // must be less than nr_servers-1
@@ -28,8 +43,7 @@ func Main_bprp() {
 	  R_is = big.NewInt(0)
 
 		//bulletproofs setup params
-		params, _ := bulletproofs.SetupGeneric(0, 200)
-		g = params.BP1.G
+		params, _ := bulletproofs.SetupGeneric(min,max)
 
 	  // Initiate cients
 	  for i:=int64(1) ; i<= nr_clients ; i++{
@@ -84,11 +98,11 @@ func Main_bprp() {
 	  for j:= int64(0); j < nr_servers ; j++{
 	    s_j := servers[j]
 	    y_js = append(y_js, Partial_eval(s_j, GetServerId(s_j), GetShares(s_j), nr_clients, Zp))
-	    sigma_js = append(sigma_js,Partial_proof(s_j, GetShares(s_j), g, nr_clients, Zp))
+	    sigma_js = append(sigma_js,Partial_proof(s_j, GetShares(s_j), nr_clients, Zp))
 	  }
 
 	  y := Final_eval(y_js, nr_servers, Zp)
-	  sigma := Final_proof(sigma_js,nr_servers, g)
+	  sigma := Final_proof(sigma_js,nr_servers)
 		ok := Verify(tau_is, nr_clients, sigma, y, range_proofs)
 	  sum := GetNumber(InitIntegerModP(y,Zp))
 

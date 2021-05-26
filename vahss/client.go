@@ -1,9 +1,23 @@
+/*
+ * Copyright (C) 2021 Hanna Ek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package vahss
 
 import(
   "math/big"
-  //"github.com/ing-bank/zkrp/crypto/p256"
-  //  "hannaekthesis/bulletproof"
 )
 type Client struct {
     Id     int
@@ -17,27 +31,6 @@ type Client struct {
 func GetClientId(c_i *Client) int{
   return c_i.Id
 }
-/*
-func Generate_shares(c_i *Client, nr_servers int64) ([]*big.Int){
-  var shares_Zp []*IntegerModP
-  //var tau_i *p256.P256
-  shares_Zp = gen_secret_share_additive_with_hash_functions(c_i.i, c_i.Xi, c_i.t, nr_servers,c_i.mod)
-  //tau_i = gen_tau(c_i.xi,c_i.Ri,c_i.g, params)
-  // convert []IntegerModP -> []big.Int
-  var shares []*big.Int
-  for _,share := range shares_Zp {
-    shares = append(shares,share.num)
-  }
-  //c_i.tau_i = tau_i
-
-  return shares
-}
-*/
-/*
-func Get_tau(c_i *Client) (*p256.P256){
-  return c_i.tau_i
-}
-*/
 
 func InitClient(id_client int, secret_input *big.Int, t int64, r_i *big.Int, mod *Modular) (*Client){
     c_i := new(Client)

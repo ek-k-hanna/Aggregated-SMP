@@ -21,8 +21,8 @@ import (
     "math"
     "math/big"
     "testing"
-
-    "github.com/ing-bank/zkrp/crypto/p256"
+  "hannaekthesis/p256"
+    //"github.com/ing-bank/zkrp/crypto/p256"
 )
 
 /*

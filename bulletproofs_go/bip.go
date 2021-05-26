@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2019 ING BANK N.V.
  *
+ * Contrubuters: Hanna Ek 2021
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -21,11 +23,10 @@ import (
     "crypto/sha256"
     "errors"
     "math/big"
-
-    "github.com/ing-bank/zkrp/crypto/p256"
+      "hannaekthesis/p256"
+    //"github.com/ing-bank/zkrp/crypto/p256"
     "github.com/ing-bank/zkrp/util/bn"
     "github.com/ing-bank/zkrp/util/byteconversion"
-
     "strconv"
 )
 
@@ -221,7 +222,6 @@ func computeBipRecursive(a, b []*big.Int, g, h []*p256.P256, u, P *p256.P256, n 
 Verify is responsible for the verification of the Inner Product Proof.
 */
 func (proof InnerProductProof) Verify() (bool, error) {
-
     logn := len(proof.Ls)
     var (
         x, xinv, x2, x2inv                   *big.Int

@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2021 Hanna Ek
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package vahss_UL
 import(
   "math/big"
@@ -9,8 +25,8 @@ import(
 
 )
 func Main_UL(){
-  const nr_clients = int64(4)
-  const nr_servers = int64(4)
+  const nr_clients = int64(100)
+  const nr_servers = int64(5)
 
   var prime, R_is, phiN *big.Int
   var Zp *Modular
@@ -19,6 +35,7 @@ func Main_UL(){
   var servers []*Server
   var zkrp Ccs08
 
+  //prime,_ = new(big.Int).SetString("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 0)
   value := "21888242871839275222246405745257275088548364400416034343698204186575808495617"
   prime, _ = new(big.Int).SetString(value, 10)
   phiN = new(big.Int).Sub(prime,big.NewInt(1))
