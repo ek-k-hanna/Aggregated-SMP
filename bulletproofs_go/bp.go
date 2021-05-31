@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2019 ING BANK N.V.
  *
- * Contrubuters: Hanna Ek 2021
+ * May 2021 - Modified by Hanna Ek.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
